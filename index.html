@@ -1,1 +1,646 @@
-"Hello world!"
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Time Maximizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#F0F4FF;--surface:#fff;--surface2:#F8FAFF;--border:#E2E8F0;
+    --text:#1E293B;--muted:#94A3B8;--subtle:#64748B;
+    --inputBg:#fff;--inputBorder:#CBD5E1;--divider:#F1F5F9;
+    --barBg:#EEF2FF;--accent:#3B82F6;
+  }
+  .dark{
+    --bg:#0F172A;--surface:#1E293B;--surface2:#263548;--border:#334155;
+    --text:#F1F5F9;--muted:#94A3B8;--subtle:#64748B;
+    --inputBg:#0F172A;--inputBorder:#475569;--divider:#334155;
+    --barBg:#334155;--accent:#3B82F6;
+  }
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+  a{color:inherit;text-decoration:none}
+  button{cursor:pointer;font-family:inherit}
+
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  .header-title{font-size:19px;font-weight:800;letter-spacing:-.3px}
+  .header-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .header-nav{display:flex;gap:6px;align-items:center}
+
+  /* Pills */
+  .pill{padding:7px 16px;border-radius:99px;border:none;font-size:13px;font-weight:500;background:var(--surface2);color:var(--subtle);transition:all .2s}
+  .pill.active{background:var(--accent);color:#fff}
+
+  /* Dark toggle */
+  .dark-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-left:4px}
+
+  /* Content */
+  .content{max-width:860px;margin:0 auto;padding:24px 16px}
+
+  /* Cards */
+  .summary-row{display:flex;gap:12px;margin-bottom:20px}
+  .summary-card{background:var(--surface);border-radius:18px;padding:18px 20px;border:1.5px solid var(--border);flex:1}
+  .summary-card .icon{font-size:26px;margin-bottom:6px}
+  .summary-card .label{font-size:12px;color:var(--muted);margin-bottom:2px}
+  .summary-card .val{font-size:30px;font-weight:800;line-height:1}
+  .summary-card .val span{font-size:14px;font-weight:400;color:var(--muted)}
+  .progress-bg{margin-top:12px;background:var(--barBg);border-radius:99px;height:6px}
+  .progress-fill{height:6px;border-radius:99px;transition:width .5s ease}
+  .progress-label{margin-top:6px;font-size:11px;color:var(--muted)}
+
+  /* 24h bar */
+  .bar24-wrap{background:var(--surface);border-radius:14px;padding:14px 18px;margin-bottom:20px;border:1px solid var(--border)}
+  .bar24-label{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:500}
+  .bar24{display:flex;height:14px;border-radius:99px;overflow:hidden;gap:2px}
+  .bar24-seg{border-radius:3px;transition:flex .5s ease}
+  .bar24-legend{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+  .bar24-legend span{font-size:11px;font-weight:500}
+
+  /* Alert */
+  .alert{border-radius:12px;padding:10px 16px;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+
+  /* Form */
+  .form-card{background:var(--surface);border-radius:18px;padding:22px;border:1px solid var(--border);margin-top:0}
+  .form-title{font-weight:700;font-size:15px;margin-bottom:20px}
+  .group-label{font-size:12px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+  .form-row{display:flex;align-items:center;margin-bottom:10px;gap:12px;padding-left:4px}
+  .form-row .row-icon{font-size:18px;width:24px;text-align:center}
+  .form-row .row-label{flex:1;font-size:13px;color:var(--subtle)}
+  .num-input{display:flex;align-items:center;border:1.5px solid var(--inputBorder);border-radius:10px;overflow:hidden;background:var(--inputBg)}
+  .num-input button{width:30px;height:34px;border:none;background:transparent;color:var(--muted);font-size:16px;font-weight:700;transition:background .15s}
+  .num-input button:hover{background:var(--barBg)}
+  .num-input input{width:44px;border:none;outline:none;background:transparent;font-size:13px;text-align:center;color:var(--text);padding:0 2px}
+  .num-input input::-webkit-inner-spin-button,.num-input input::-webkit-outer-spin-button{-webkit-appearance:none}
+  .divider{border-bottom:1px solid var(--divider);margin-top:8px;margin-bottom:20px}
+  .total-bar{background:var(--surface2);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--subtle)}
+  .total-bar span{font-size:16px;font-weight:700;color:var(--accent)}
+  .save-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px 0;font-size:14px;font-weight:700;transition:background .3s;letter-spacing:.2px}
+  .save-btn.saved{background:#10B981}
+
+  /* Chart section */
+  .chart-card{background:var(--surface);border-radius:18px;padding:24px;border:1px solid var(--border)}
+  .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .chart-title{font-weight:700;font-size:15px}
+  .chart-legend{display:flex;gap:20px;justify-content:center;margin-top:14px}
+  .chart-legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--subtle)}
+  .chart-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* Pie layout */
+  .pie-wrap{display:flex;align-items:center;gap:32px;flex-wrap:wrap;justify-content:center}
+  .pie-container{position:relative;width:230px;height:230px;flex-shrink:0}
+  .pie-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+  .pie-center .big{font-size:24px;font-weight:800}
+  .pie-center .small{font-size:11px;color:var(--muted)}
+  .pie-legend{flex:1;min-width:180px}
+  .pie-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .pie-row .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .pie-row .name{font-size:13px;color:var(--subtle);flex:1;margin-left:10px}
+  .pie-row .amt{font-size:15px;font-weight:700}
+  .pie-row .pct{font-size:11px;color:var(--muted);margin-left:5px}
+  .pie-total{border-top:1px solid var(--divider);padding-top:12px;margin-top:4px;display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+  .pie-total strong{color:var(--text)}
+
+  /* Avg */
+  .avg-section{margin-top:28px;border-top:1px solid var(--divider);padding-top:22px}
+  .avg-title{font-weight:700;font-size:14px;margin-bottom:14px}
+  .avg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .avg-card{border-radius:14px;padding:16px;text-align:center}
+  .avg-card .avg-val{font-size:26px;font-weight:800}
+  .avg-card .avg-label{font-size:11px;color:var(--subtle);margin-top:4px}
+
+  /* History */
+  .hist-card{background:var(--surface);border-radius:18px;padding:24px;border:1px solid var(--border)}
+  .hist-title{font-weight:700;font-size:15px;margin-bottom:20px}
+  .hist-row{border-bottom:1px solid var(--divider)}
+  .hist-summary{padding:14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+  .hist-summary:hover .hist-arrow{color:var(--accent)}
+  .hist-date{font-weight:600;font-size:14px}
+  .hist-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+  .hist-arrow{color:var(--muted);font-size:18px;transition:transform .2s}
+  .hist-arrow.open{transform:rotate(90deg)}
+  .hist-detail{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding-bottom:14px}
+  .hist-detail-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:8px 12px}
+  .hist-detail-item .di-icon{font-size:16px}
+  .hist-detail-item .di-label{font-size:12px;color:var(--subtle);flex:1}
+  .hist-detail-item .di-val{font-size:13px;font-weight:700}
+  .hist-empty{padding:13px 0;border-bottom:1px solid var(--divider);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .hist-badge{font-size:11px;background:var(--surface2);border-radius:99px;padding:2px 10px}
+
+  /* Confirm dialog */
+  .confirm-overlay{position:fixed;inset:0;background:#0006;z-index:100;display:flex;align-items:center;justify-content:center}
+  .confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 28px 22px;max-width:340px;width:90%;box-shadow:0 8px 40px #0004;text-align:center}
+  .confirm-box .cb-icon{font-size:36px;margin-bottom:12px}
+  .confirm-box .cb-title{font-weight:700;font-size:15px;margin-bottom:8px}
+  .confirm-box .cb-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5}
+  .confirm-box .cb-btns{display:flex;gap:10px}
+  .confirm-box .cb-btns button{flex:1;padding:11px 0;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
+  .confirm-box .cb-btns button:hover{opacity:.85}
+
+  /* Tab panels */
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* Chart type panels */
+  .chart-panel{display:none}
+  .chart-panel.active{display:block}
+
+  @media(max-width:600px){
+    .summary-row{flex-direction:column}
+    .avg-grid{grid-template-columns:repeat(2,1fr)}
+    .header-nav .pill{padding:6px 10px;font-size:12px}
+    .hist-detail{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">⏱ Time Maximizer</div>
+    <div class="header-sub" id="todayLabel"></div>
+  </div>
+  <div class="header-nav">
+    <button class="pill active" onclick="switchTab('today',this)">Hôm nay</button>
+    <button class="pill" onclick="switchTab('chart',this)">Biểu đồ</button>
+    <button class="pill" onclick="switchTab('history',this)">Lịch sử</button>
+    <button class="dark-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="confirm-overlay" id="confirmOverlay" style="display:none">
+  <div class="confirm-box">
+    <div class="cb-icon">🗑️</div>
+    <div class="cb-title">Xoá dữ liệu?</div>
+    <div class="cb-sub" id="confirmMsg"></div>
+    <div class="cb-btns">
+      <button onclick="confirmCancel()" style="background:var(--surface2);color:var(--subtle)">Huỷ</button>
+      <button onclick="confirmOk()" style="background:#EF4444;color:#fff">Xoá</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ══ TODAY ══ -->
+  <div class="tab-panel active" id="tab-today">
+    <!-- Summary cards -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="icon">📚</div>
+        <div class="label">Học tập</div>
+        <div class="val" id="sc-study">0<span>h</span></div>
+        <div class="progress-bg"><div class="progress-fill" id="pf-study" style="width:0%;background:#6366F1"></div></div>
+        <div class="progress-label" id="pl-study">0% mục tiêu 12h</div>
+      </div>
+      <div class="summary-card">
+        <div class="icon">🌿</div>
+        <div class="label">Sinh hoạt</div>
+        <div class="val" id="sc-life">0<span>h</span></div>
+        <div class="progress-bg"><div class="progress-fill" id="pf-life" style="width:0%;background:#10B981"></div></div>
+        <div class="progress-label" id="pl-life">0% mục tiêu 14h</div>
+      </div>
+      <div class="summary-card">
+        <div class="icon">🎯</div>
+        <div class="label">Giải trí</div>
+        <div class="val" id="sc-ent">0<span>h</span></div>
+        <div class="progress-bg"><div class="progress-fill" id="pf-ent" style="width:0%;background:#F59E0B"></div></div>
+        <div class="progress-label" id="pl-ent">0% mục tiêu 6h</div>
+      </div>
+    </div>
+
+    <!-- 24h bar -->
+    <div class="bar24-wrap">
+      <div class="bar24-label">⏳ Phân bổ 24 giờ hôm nay</div>
+      <div class="bar24" id="bar24"></div>
+      <div class="bar24-legend" id="bar24legend"></div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="alerts"></div>
+
+    <!-- Form -->
+    <div class="form-card">
+      <div class="form-title">⏱ Nhập thời gian hôm nay</div>
+      <div id="formGroups"></div>
+      <div class="total-bar">Tổng đã nhập hôm nay <span id="totalHours">0h / 24h</span></div>
+      <button class="save-btn" id="saveBtn" onclick="saveToday()">💾 Lưu hôm nay</button>
+    </div>
+  </div>
+
+  <!-- ══ CHART ══ -->
+  <div class="tab-panel" id="tab-chart">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title" id="chartTitle">📊 Xu hướng 7 ngày gần nhất</div>
+        <div style="display:flex;gap:6px">
+          <button class="pill active" id="btnBar" onclick="switchChart('bar',this)">📊 Cột</button>
+          <button class="pill" id="btnPie" onclick="switchChart('pie',this)">🥧 Tròn</button>
+        </div>
+      </div>
+      <div class="chart-panel active" id="cp-bar">
+        <div style="position:relative;height:280px;width:100%">
+        <canvas id="barChart"></canvas>
+        </div>
+        <div class="chart-legend">
+          <span><i style="background:#6366F1"></i>Học tập</span>
+          <span><i style="background:#10B981"></i>Sinh hoạt</span>
+          <span><i style="background:#F59E0B"></i>Giải trí</span>
+        </div>
+      </div>
+      <div class="chart-panel" id="cp-pie">
+        <div class="pie-wrap">
+          <div class="pie-container">
+            <canvas id="pieChart" width="230" height="230"></canvas>
+            <div class="pie-center"><div class="big" id="pieCenter">0h</div><div class="small">đã ghi / 24h</div></div>
+          </div>
+          <div class="pie-legend" id="pieLegend"></div>
+        </div>
+      </div>
+      <div class="avg-section">
+        <div class="avg-title">📈 Trung bình tuần</div>
+        <div class="avg-grid" id="avgGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY ══ -->
+  <div class="tab-panel" id="tab-history">
+    <div class="hist-card">
+      <div class="hist-title">📅 Lịch sử 7 ngày gần nhất</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────────
+const CATS = [
+  {key:"class",       label:"Học trên lớp",       icon:"🏫", group:"study"},
+  {key:"self",        label:"Tự học ở nhà",        icon:"📖", group:"study"},
+  {key:"homework",    label:"Làm bài tập",         icon:"✏️",  group:"study"},
+  {key:"exam",        label:"Ôn thi / Luyện đề",  icon:"📝", group:"study"},
+  {key:"sleep",       label:"Ngủ",                 icon:"😴", group:"life"},
+  {key:"exercise",    label:"Thể dục / Vận động",  icon:"🏃", group:"life"},
+  {key:"social",      label:"Gia đình & Bạn bè",   icon:"👨‍👩‍👧", group:"life"},
+  {key:"selfcare",    label:"Self-care",           icon:"🌱", group:"life"},
+  {key:"phone",       label:"Điện thoại / MXH",   icon:"📱", group:"entertain"},
+  {key:"entertainment",label:"Giải trí lành mạnh",icon:"🎮", group:"entertain"},
+];
+
+const GROUPS = [
+  {key:"study",     label:"Học tập",   icon:"📚", light:"#6366F1", dark:"#818CF8", max:12},
+  {key:"life",      label:"Sinh hoạt", icon:"🌿", light:"#10B981", dark:"#34D399", max:14},
+  {key:"entertain", label:"Giải trí",  icon:"🎯", light:"#F59E0B", dark:"#FBBF24", max:6},
+];
+
+const WEEKDAYS = ["CN","T2","T3","T4","T5","T6","T7"];
+const SK = "student_html_v1";
+
+let allData = {};
+let form = {};
+let isDark = false;
+let barChartInst = null;
+let pieChartInst = null;
+let openHist = null;
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function last7() {
+  return Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(6-i)); return d.toISOString().slice(0,10); });
+}
+
+function fmtDate(s) {
+  return new Date(s).toLocaleDateString("vi-VN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+
+function groupSum(hours, gKey) {
+  return CATS.filter(c=>c.group===gKey).reduce((s,c)=>s+(parseFloat(hours[c.key])||0),0);
+}
+
+function gColor(g) { return isDark ? g.dark : g.light; }
+
+// ── Storage ─────────────────────────────────────────────────────────────────
+function loadLS() {
+  try { const r=localStorage.getItem(SK); return r?JSON.parse(r):{}; } catch{return {};}
+}
+function saveLS(d) { try{localStorage.setItem(SK,JSON.stringify(d));}catch{} }
+
+// ── Init ────────────────────────────────────────────────────────────────────
+function init() {
+  allData = loadLS();
+  form = Object.assign({}, (allData[todayStr()]||{}).hours||{});
+  document.getElementById("todayLabel").textContent = fmtDate(todayStr());
+  buildForm();
+  renderToday();
+  renderChart();
+  renderHistory();
+}
+
+// ── Dark mode ────────────────────────────────────────────────────────────────
+function toggleDark() {
+  isDark = !isDark;
+  document.body.classList.toggle("dark", isDark);
+  document.getElementById("darkBtn").textContent = isDark?"☀️":"🌙";
+  renderToday();
+  renderChart();
+  renderHistory();
+}
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  document.querySelectorAll(".header-nav .pill").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  if(name==="chart") renderChart();
+  if(name==="history") renderHistory();
+}
+
+function switchChart(type, btn) {
+  document.querySelectorAll(".chart-panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("cp-"+type).classList.add("active");
+  document.querySelectorAll("#tab-chart .pill").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("chartTitle").textContent = type==="bar"?"📊 Xu hướng 7 ngày gần nhất":"🥧 Phân bổ 24 giờ hôm nay";
+  if(type==="bar") renderBarChart();
+  else renderPieChart();
+}
+
+// ── Form ─────────────────────────────────────────────────────────────────────
+function buildForm() {
+  const el = document.getElementById("formGroups");
+  el.innerHTML = "";
+  GROUPS.forEach(g => {
+    const cats = CATS.filter(c=>c.group===g.key);
+    const color = gColor(g);
+    let html = `<div class="group-label" style="color:${color}">${g.icon} ${g.label}</div>`;
+    cats.forEach(cat => {
+      const v = form[cat.key]||0;
+      html += `<div class="form-row">
+        <span class="row-icon">${cat.icon}</span>
+        <span class="row-label">${cat.label}</span>
+        <div class="num-input">
+          <button onclick="adjustHour('${cat.key}',-0.5)">−</button>
+          <input type="number" id="inp-${cat.key}" value="${v||''}" min="0" max="24" step="0.5" placeholder="0"
+            oninput="setHour('${cat.key}',this.value)">
+          <button onclick="adjustHour('${cat.key}',0.5)">+</button>
+        </div>
+        <span style="font-size:12px;color:var(--muted);width:12px">h</span>
+      </div>`;
+    });
+    html += `<div class="divider"></div>`;
+    el.innerHTML += html;
+  });
+}
+
+function setHour(key, val) {
+  form[key] = Math.max(0, Math.min(24, parseFloat(val)||0));
+  updateTodayUI();
+}
+
+function adjustHour(key, delta) {
+  const cur = parseFloat(form[key])||0;
+  const nv = Math.max(0, Math.min(24, Math.round((cur+delta)*10)/10));
+  form[key] = nv;
+  const inp = document.getElementById("inp-"+key);
+  if(inp) inp.value = nv||"";
+  updateTodayUI();
+}
+
+// ── Render Today ─────────────────────────────────────────────────────────────
+function renderToday() {
+  buildForm();
+  updateTodayUI();
+}
+
+function updateTodayUI() {
+  const h = form;
+  const sT = groupSum(h,"study"), lT = groupSum(h,"life"), eT = groupSum(h,"entertain");
+  const used = sT+lT+eT, free = Math.max(0,24-used);
+
+  // Summary cards
+  function updCard(id, val, max, color) {
+    const pct = Math.min((val/max)*100,100);
+    document.getElementById("sc-"+id).innerHTML = val.toFixed(1)+"<span>h</span>";
+    document.getElementById("pf-"+id).style.width = pct+"%";
+    document.getElementById("pl-"+id).textContent = pct.toFixed(0)+"% mục tiêu "+max+"h";
+  }
+  updCard("study", sT, 12, "#6366F1");
+  updCard("life",  lT, 14, "#10B981");
+  updCard("ent",   eT,  6, "#F59E0B");
+
+  // 24h bar
+  const bar24 = document.getElementById("bar24");
+  const segs = [{val:sT,color:isDark?"#818CF8":"#6366F1"},{val:lT,color:isDark?"#34D399":"#10B981"},{val:eT,color:isDark?"#FBBF24":"#F59E0B"},{val:free,color:"var(--barBg)"}];
+  bar24.innerHTML = segs.filter(s=>s.val>0).map(s=>`<div class="bar24-seg" style="flex:${s.val};background:${s.color}"></div>`).join("");
+  document.getElementById("bar24legend").innerHTML =
+    `<span style="color:${isDark?"#818CF8":"#6366F1"}">📚 Học: ${sT.toFixed(1)}h</span>`+
+    `<span style="color:${isDark?"#34D399":"#10B981"}">🌿 Sinh hoạt: ${lT.toFixed(1)}h</span>`+
+    `<span style="color:${isDark?"#FBBF24":"#F59E0B"}">🎯 Giải trí: ${eT.toFixed(1)}h</span>`+
+    `<span style="color:var(--muted)">⬜ Còn lại: ${free.toFixed(1)}h</span>`;
+
+  // Alerts
+  const alerts = [];
+  if(h.sleep>0&&h.sleep<7) alerts.push({text:"😴 Ngủ chưa đủ 7 tiếng! Hãy đi ngủ sớm hơn.",color:"#0EA5E9"});
+  if(h.phone>2)   alerts.push({text:"📱 Dùng điện thoại hơn 2 tiếng — thử đặt giới hạn nhé!",color:"#EF4444"});
+  if(sT>0&&sT<3)  alerts.push({text:"📚 Chưa đủ 3 tiếng học hôm nay. Cố lên nào!",color:"#6366F1"});
+  if(!h.exercise&&used>0) alerts.push({text:"🏃 Đừng quên vận động ít nhất 20–30 phút hôm nay!",color:"#10B981"});
+  document.getElementById("alerts").innerHTML = alerts.map(a=>
+    `<div class="alert" style="background:${a.color}18;border:1px solid ${a.color}45;color:${a.color}">${a.text}</div>`
+  ).join("");
+
+  // Total
+  const totEl = document.getElementById("totalHours");
+  totEl.textContent = used.toFixed(1)+"h / 24h";
+  totEl.style.color = used>24?"#EF4444":"var(--accent)";
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+function saveToday() {
+  allData[todayStr()] = {hours: Object.assign({},form)};
+  saveLS(allData);
+  const btn = document.getElementById("saveBtn");
+  btn.textContent = "✅ Đã lưu thành công!";
+  btn.classList.add("saved");
+  setTimeout(()=>{btn.textContent="💾 Lưu hôm nay";btn.classList.remove("saved");},2200);
+  renderHistory();
+}
+
+// ── Charts ───────────────────────────────────────────────────────────────────
+function renderChart() {
+  const active = document.getElementById("cp-bar").classList.contains("active");
+  if(active) renderBarChart(); else renderPieChart();
+  renderAvg();
+}
+
+function renderBarChart() {
+  const days = last7();
+  const labels = days.map(d=>WEEKDAYS[new Date(d).getDay()]);
+  const study=[], life=[], ent=[];
+  days.forEach(d=>{
+    const h=(allData[d]||{}).hours||{};
+    study.push(+groupSum(h,"study").toFixed(1));
+    life.push(+groupSum(h,"life").toFixed(1));
+    ent.push(+groupSum(h,"entertain").toFixed(1));
+  });
+  const ctx = document.getElementById("barChart").getContext("2d");
+  if(barChartInst) barChartInst.destroy();
+  Chart.defaults.color = isDark?"#94A3B8":"#94A3B8";
+  barChartInst = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        {label:"Học tập",  data:study, backgroundColor:isDark?"#818CF8":"#6366F1",borderRadius:6},
+        {label:"Sinh hoạt",data:life,  backgroundColor:isDark?"#34D399":"#10B981",borderRadius:6},
+        {label:"Giải trí", data:ent,   backgroundColor:isDark?"#FBBF24":"#F59E0B",borderRadius:6},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+": "+c.raw+"h"}}},
+      scales:{
+        x:{grid:{display:false},border:{display:false}},
+        y:{grid:{color:isDark?"#334155":"#F1F5F9"},border:{display:false},ticks:{callback:v=>v+"h"}},
+      }
+    }
+  });
+
+}
+
+function renderPieChart() {
+  const h = (allData[todayStr()]||{}).hours||{};
+  const sT=groupSum(h,"study"), lT=groupSum(h,"life"), eT=groupSum(h,"entertain");
+  const used=sT+lT+eT, free=Math.max(0,24-used);
+  const data=[sT,lT,eT,free].map(v=>+v.toFixed(1));
+  const colors=[isDark?"#818CF8":"#6366F1",isDark?"#34D399":"#10B981",isDark?"#FBBF24":"#F59E0B",isDark?"#334155":"#E2E8F0"];
+  const labels=["Học tập","Sinh hoạt","Giải trí","Chưa ghi"];
+
+  document.getElementById("pieCenter").textContent = used.toFixed(1)+"h";
+
+  const ctx = document.getElementById("pieChart").getContext("2d");
+  if(pieChartInst) pieChartInst.destroy();
+  pieChartInst = new Chart(ctx,{
+    type:"doughnut",
+    data:{labels, datasets:[{data, backgroundColor:colors, borderWidth:2, borderColor:isDark?"#1E293B":"#fff"}]},
+    options:{
+      responsive:false, cutout:"58%",
+      rotation:-90, circumference:360,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+": "+c.raw+"h ("+((c.raw/24)*100).toFixed(0)+"%)"}}}
+    }
+  });
+
+  // Legend
+  const rows = labels.map((l,i)=>`
+    <div class="pie-row">
+      <div class="dot" style="background:${colors[i]}"></div>
+      <span class="name">${l}</span>
+      <span class="amt" style="color:${colors[i]}">${data[i]}h</span>
+      <span class="pct">(${((data[i]/24)*100).toFixed(0)}%)</span>
+    </div>`).join("");
+  document.getElementById("pieLegend").innerHTML = rows +
+    `<div class="pie-total">Còn lại chưa ghi<strong>${free.toFixed(1)}h</strong></div>`;
+}
+
+function renderAvg() {
+  const days = last7();
+  const avgs = GROUPS.map(g=>{
+    const sum = days.reduce((a,d)=>a+groupSum((allData[d]||{}).hours||{},g.key),0);
+    return {label:g.label+"/ngày", val:(sum/7).toFixed(1), color:gColor(g)};
+  });
+  document.getElementById("avgGrid").innerHTML = avgs.map(a=>
+    `<div class="avg-card" style="background:${a.color}15;border:1px solid ${a.color}25">
+      <div class="avg-val" style="color:${a.color}">${a.val}h</div>
+      <div class="avg-label">${a.label}</div>
+    </div>`
+  ).join("");
+}
+
+// ── History ──────────────────────────────────────────────────────────────────
+function renderHistory() {
+  const days = last7().reverse();
+  let html = "";
+  days.forEach(d=>{
+    const dd = allData[d];
+    if(!dd){
+      html+=`<div class="hist-empty">${fmtDate(d)}<span class="hist-badge">Chưa có dữ liệu</span></div>`;
+      return;
+    }
+    const h=dd.hours||{};
+    const sT=groupSum(h,"study"),lT=groupSum(h,"life"),eT=groupSum(h,"entertain"),tot=sT+lT+eT;
+    const isOpen = openHist===d;
+    const sc=isDark?"#818CF8":"#6366F1",lc=isDark?"#34D399":"#10B981",ec=isDark?"#FBBF24":"#F59E0B";
+    let detail="";
+    if(isOpen){
+      const items=CATS.filter(c=>(h[c.key]||0)>0).map(c=>
+        `<div class="hist-detail-item"><span class="di-icon">${c.icon}</span><span class="di-label">${c.label}</span><span class="di-val">${h[c.key]}h</span></div>`
+      ).join("");
+      detail=`<div class="hist-detail">${items}</div>`;
+    }
+    html+=`<div class="hist-row">
+      <div class="hist-summary" onclick="toggleHist('${d}')">
+        <div>
+          <div class="hist-date">${fmtDate(d)}</div>
+          <div class="hist-meta">
+            <span style="color:${sc}">📚 ${sT.toFixed(1)}h</span>
+            <span style="color:${lc}">🌿 ${lT.toFixed(1)}h</span>
+            <span style="color:${ec}">🎯 ${eT.toFixed(1)}h</span>
+            <span>∑ ${tot.toFixed(1)}h</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="event.stopPropagation();deleteDay('${d}')"
+            title="Xoá dữ liệu ngày này"
+            style="width:30px;height:30px;border-radius:8px;border:1px solid #EF444450;background:#EF444415;color:#EF4444;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s"
+            onmouseover="this.style.background='#EF4444';this.style.color='#fff'"
+            onmouseout="this.style.background='#EF444415';this.style.color='#EF4444'">🗑</button>
+          <span class="hist-arrow${isOpen?" open":""}">›</span>
+        </div>
+      </div>
+      ${detail}
+    </div>`;
+  });
+  document.getElementById("histList").innerHTML=html;
+}
+
+function toggleHist(d) {
+  openHist = openHist===d ? null : d;
+  renderHistory();
+}
+
+let pendingDeleteDay = null;
+
+function deleteDay(d) {
+  pendingDeleteDay = d;
+  document.getElementById("confirmMsg").textContent = "Bạn có chắc muốn xoá dữ liệu ngày " + fmtDate(d) + " không? Hành động này không thể hoàn tác.";
+  document.getElementById("confirmOverlay").style.display = "flex";
+}
+
+function confirmOk() {
+  const d = pendingDeleteDay;
+  document.getElementById("confirmOverlay").style.display = "none";
+  if(!d) return;
+  delete allData[d];
+  saveLS(allData);
+  if(openHist===d) openHist=null;
+  if(d===todayStr()){ form={}; renderToday(); }
+  renderHistory();
+  pendingDeleteDay = null;
+}
+
+function confirmCancel() {
+  document.getElementById("confirmOverlay").style.display = "none";
+  pendingDeleteDay = null;
+}
+
+// ── Start ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
+
